@@ -1,49 +1,36 @@
 // index.js
-// where your node app starts
-
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 
 const app = express();
 
-// Let Express trust proxy headers (so req.ip works on Vercel/Render/Heroku)
+// Trust proxy (needed on services like Vercel, Render, etc.)
 app.set("trust proxy", true);
 
-// enable CORS for FCC tests
 app.use(cors({ optionsSuccessStatus: 200 }));
-
-// serve static files
 app.use(express.static("public"));
 
-// landing page
-app.get("/", (_req, res) => {
-  res.sendFile(path.join(__dirname, "views", "index.html"));
+// Home route
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/views/index.html");
 });
 
-// sample endpoint (kept for FCC runner compatibility)
-app.get("/api/hello", (_req, res) => {
+// Test endpoint
+app.get("/api/hello", (req, res) => {
   res.json({ greeting: "hello API" });
 });
 
-// === Your API endpoint ===
+// ✅ Header Parser endpoint
 app.get("/api/whoami", (req, res) => {
-  // Prefer X-Forwarded-For (first IP) when behind proxies
-  const xff = req.headers["x-forwarded-for"];
-  const ip =
-    (typeof xff === "string" && xff.split(",")[0].trim()) ||
-    req.ip || // Express computed
-    req.socket?.remoteAddress ||
-    "";
-
   res.json({
-    ipaddress: ip,
+    ipaddress: req.ip,
     language: req.headers["accept-language"],
-    software: req.headers["user-agent"]
+    software: req.headers["user-agent"],
   });
 });
 
-// start server
+// Start server
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log("Your app is listening on port " + listener.address().port);
 });
