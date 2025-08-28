@@ -1,30 +1,49 @@
 // index.js
 // where your node app starts
 
-// init project
-require('dotenv').config();
-var express = require('express');
-var app = express();
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
 
-// enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
-// so that your API is remotely testable by FCC
-var cors = require('cors');
-app.use(cors({ optionsSuccessStatus: 200 })); // some legacy browsers choke on 204
+const app = express();
 
-// http://expressjs.com/en/starter/static-files.html
-app.use(express.static('public'));
+// Let Express trust proxy headers (so req.ip works on Vercel/Render/Heroku)
+app.set("trust proxy", true);
 
-// http://expressjs.com/en/starter/basic-routing.html
-app.get('/', function (req, res) {
-  res.sendFile(__dirname + '/views/index.html');
+// enable CORS for FCC tests
+app.use(cors({ optionsSuccessStatus: 200 }));
+
+// serve static files
+app.use(express.static("public"));
+
+// landing page
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "views", "index.html"));
 });
 
-// your first API endpoint...
-app.get('/api/hello', function (req, res) {
-  res.json({ greeting: 'hello API' });
+// sample endpoint (kept for FCC runner compatibility)
+app.get("/api/hello", (_req, res) => {
+  res.json({ greeting: "hello API" });
 });
 
-// listen for requests :)
-var listener = app.listen(process.env.PORT || 3000, function () {
-  console.log('Your app is listening on port ' + listener.address().port);
+// === Your API endpoint ===
+app.get("/api/whoami", (req, res) => {
+  // Prefer X-Forwarded-For (first IP) when behind proxies
+  const xff = req.headers["x-forwarded-for"];
+  const ip =
+    (typeof xff === "string" && xff.split(",")[0].trim()) ||
+    req.ip || // Express computed
+    req.socket?.remoteAddress ||
+    "";
+
+  res.json({
+    ipaddress: ip,
+    language: req.headers["accept-language"],
+    software: req.headers["user-agent"]
+  });
+});
+
+// start server
+const listener = app.listen(process.env.PORT || 3000, () => {
+  console.log("Your app is listening on port " + listener.address().port);
 });
